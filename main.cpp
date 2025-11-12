@@ -80,28 +80,34 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "config.h"
+
+#include "morseEncoder/morseEncoder.h"
+
+extern "C" {
 #include "pico-hf-oscillator/defines.h"
-
 #include "pico-hf-oscillator/piodco/piodco.h"
-#include "build/dco2.pio.h"
-#include "hardware/vreg.h"
-#include "pico/multicore.h"
-#include "pico/stdio/driver.h"
-
 #include "pico-hf-oscillator/./lib/assert.h"
 #include "pico-hf-oscillator/./debug/logutils.h"
 #include "pico-hf-oscillator/hwdefs.h"
 
+#include "build/dco2.pio.h"
+}
 
-//#define GEN_FRQ_HZ 32333333L
-#define GEN_FRQ_HZ 14100000L
+#include "hardware/vreg.h"
+#include "pico/multicore.h"
+#include "pico/stdio/driver.h"
+
+
 
 PioDco DCO; /* External in order to access in both cores. */
 
 void core1_entry();
+void RAM (tx_wrapper)(bool state);
 
 int main() 
 {
+    morseEncoder morse(tx_wrapper, DEFAULT_WPM);
     const uint32_t clkhz = PLL_SYS_MHZ * 1000000L;
     set_sys_clock_khz(clkhz / 1000L, true);
 
@@ -113,7 +119,23 @@ int main()
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
 
     multicore_launch_core1(core1_entry);
+    sleep_ms(10);
+    PioDCOStop(&DCO);
+    morse.enable();
+    while(true)
+    {
+        morse.sendMsg(DEFAULT_MSG, DEFAULT_MSG_LEN);
+        sleep_ms(DELAY_BETWEEN_TX);
+    }
 
+}
+
+void RAM (tx_wrapper)(bool state)
+{
+    if( state )
+        PioDCOStart(&DCO);
+    else
+        PioDCOStop(&DCO);
 }
 
 /* This is the code of dedicated core. 
@@ -123,15 +145,15 @@ void core1_entry()
     const uint32_t clkhz = PLL_SYS_MHZ * 1000000L;
 
     /* Initialize DCO */
-    assert_(0 == PioDCOInit(&DCO, 6, clkhz));
+    assert_(0 == PioDCOInit(&DCO, TX_PIN, clkhz));
 
     /* Run DCO. */
     PioDCOStart(&DCO);
 
+
     /* Set initial freq. */
-    assert_(0 == PioDCOSetFreq(&DCO, GEN_FRQ_HZ, 0u));
+    assert_(0 == PioDCOSetFreq(&DCO, DEFAULT_TX_FREQ, 0u));
 
     /* Run the main DCO algorithm. It spins forever. */
     PioDCOWorker2(&DCO);
 }
-

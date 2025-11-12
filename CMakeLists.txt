@@ -28,7 +28,8 @@ pico_generate_pio_header(pico-beacon ${CMAKE_CURRENT_LIST_DIR}/pico-hf-oscillato
 target_sources(pico-beacon PUBLIC
 	             ${CMAKE_CURRENT_LIST_DIR}/pico-hf-oscillator/lib/assert.c
                ${CMAKE_CURRENT_LIST_DIR}/pico-hf-oscillator/piodco/piodco.c
-               ${CMAKE_CURRENT_LIST_DIR}/main.c
+               ${CMAKE_CURRENT_LIST_DIR}/morseEncoder/morseEncoder.cpp
+               ${CMAKE_CURRENT_LIST_DIR}/main.cpp
               )
 
 pico_set_program_name(pico-beacon "pico-beacon")
@@ -43,6 +44,7 @@ target_include_directories(pico-beacon PRIVATE
                            ${CMAKE_CURRENT_LIST_DIR}/pico-hf-oscillator/piodco
                            ${CMAKE_CURRENT_LIST_DIR}/pico-hf-oscillator/debug
                            ${CMAKE_CURRENT_LIST_DIR}/pico-hf-oscillator
+                           ${CMAKE_CURRENT_LIST_DIR}/morseEncoder
                            ${CMAKE_CURRENT_LIST_DIR}/..
                           )
 
